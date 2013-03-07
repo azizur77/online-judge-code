@@ -1,77 +1,65 @@
-// Team Selection
+#include <stdio.h>
 #include <iostream>
-#include <cstdio>
-#include <cmath>
+#include <math.h>
+#include <assert.h>
 #include <vector>
 #include <algorithm>
 #include <utility>
-#include <string>
-#include <cstring>
-#include <cassert>
-#include <queue>
-#include <set>
-#include <numeric>
-#include <stack>
+#include <string.h>
 using namespace std;
-#define mp make_pair
-#define INF (int)1e9
-#define X first
-#define Y second
-#define REP(i, n) for(int i=0; i < n; i++)
-#define FOR(i, a, b) for(int i=a; i < b; i++)
-#define fill(a, x) memset(a, x, sizeof(a))
-#define all(c) c.begin(), c.end()
-#define sz(x)    ((int) x.size())
-typedef vector<int> vi;
 typedef pair<int, int> ii;
 typedef long long ll;
+typedef vector<int> vi;
+#define X first
+#define Y second
+#define all(c)	(c).begin(), (c).end()
+#define sz(x)	((int) (x).size())
+#define fill(c, v)	memset((c), (v), sizeof((c)))
 
-bool table[23000][101];
-int N, SUM, arr[105];
+int memo[22505][51], sum=0, N, arr[105];
+bool can_use[101];
 
-void fill_table() {
-	for(int i=0; i <= SUM/2; i++)
-		for(int j=0; j <= N; j++)
-			table[i][j] = false;
-	table[0][0] = true;
-	for(int i=0; i <= SUM/2; i++)
-		for(int j=1; j <= N; j++) {
-			if (i - arr[j] >= 0)
-				table[i][j] = table[i-arr[j]][j-1] || table[i][j-1];
+int search(int val, int depth) {
+	if (memo[val][depth] != -1) return memo[val][depth];
+	if (val == 0 && depth == 0) return 1;
+	memo[val][depth] = 0;
+
+	if (depth > 0)
+	for(int i=0; i < N && arr[i] <= val; i++) 
+		if (can_use[i]) {
+			can_use[i] = false;
+			memo[val][depth] |= search(val - arr[i], depth-1);
+			can_use[i] = true;
+			if (memo[val][depth] == 1) break;
 		}
-}
-
-bool search(int target, int maxi, int aleft) {
-	if (!table[target][maxi]) return false;
-	if (target == 0 && maxi == 0) return true;
-	bool res = false;
-	for(int i=aleft; i <= maxi; i++) {
-		res = res || search(target, i, aleft-1);
-	} 
-	return res;
+	return memo[val][depth];
 }
 
 int main() {
 	int T;
 	scanf("%d", &T);
-	for(int i=0; i < T; i++) {
+	for(int t=0; t < T; t++) {
+		if (t > 0) printf("\n");
+		fill(memo, -1);
 		scanf("%d", &N);
-		for(int j=1; j <= N; j++) scanf("%d", &arr[j]);
-		sort(arr+1, arr+N+1);
-		SUM = 0;
-		for(int j=1; j <= N; j++) SUM += arr[j];	
-		fill_table();
-		bool flag = N % 2;
-		int minsum;
-		for(minsum=SUM/2; minsum >= 0; minsum--) {
-			if (flag) {
-				if (search(minsum, N, N/2+1) || search(minsum, N, N/2))
-					break;
-			}
-			else if (search(minsum, N, N/2)) break;
+		for(int i=0; i < N; i++) scanf("%d", &arr[i]);
+		sort(arr, arr+N);
+		int size = N/2;
+		sum = 0;
+		for(int i=0; i < N; i++) sum += arr[i];
+		for(int i=sum/2; i >= 0; i--) {	
+			fill(can_use, true);
+			search(i, size);
 		}
-		printf("%d\n%d\n", minsum, SUM - minsum);
-		if (i < N-1) printf("\n");
+
+		int best, mindiff = (1<<30);
+		for(int i=sum/2; i >=0; i--) 
+			if (memo[i][size] == 1 && abs(sum - 2*i) < mindiff) {
+				mindiff = abs(sum - 2*i);
+				best = i;
+			}
+		int a[] = {best, sum-best};
+		sort(a, a+2);
+		printf("%d %d\n", a[0], a[1]);
 	}
-	return 0;
 }

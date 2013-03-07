@@ -5,6 +5,7 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <set>
 #include <string.h>
 using namespace std;
 typedef pair<int, int> ii;
@@ -18,6 +19,8 @@ typedef vector<int> vi;
 
 int n, m, adj[2055][2055], row[2055], col[2055], r, c;
 vi edges[2055];
+
+set <ii> matching;
 
 int match() {
 	int flow = 0;
@@ -52,7 +55,8 @@ int match() {
 			flow++;
 			for(int u=n+m+1; u != 0; u = pi[u]) {
 				int v = pi[u];
-				if (u >= 1 && u <= n) row[u] = 1;
+				if (v > u) matching.erase(ii(u, v));
+				if (v >= 1 && v <= n && u > n && u <= n+m) matching.insert(ii(v,u));
 				adj[v][u]--;
 				adj[u][v]++;
 			}
@@ -69,6 +73,7 @@ int main() {
 		fill(adj, 0);
 		fill(row, 0);
 		fill(col, 0);
+		matching.clear();
 
 		for(int i=0; i <= n+m+1; i++) edges[i].clear();
 
@@ -91,32 +96,56 @@ int main() {
 			edges[n+i].push_back(n+m+1);
 			edges[n+m+1].push_back(n+i);
 		}
-
-		for(int i=1; i <= n; i++) 
-			if (!row[i]) 
-				for(int j=0; j < edges[i].size(); j++) 
-					col[edges[i][j]] = 1;
-
-		for(int i=n+1; i <= n+m; i++)
-			if (col[i])
-				for(int j=0; j < edges[i].size(); j++) {
-					int v = edges[i][j];
-					if (row[v] == 1 ) row[v] = 0;
-				}
-
+	
 		int cover = match();
+		assert(sz(matching) == cover);
+		set<ii>::iterator it;
 
+		// for(it = matching.begin(); it != matching.end(); it++) {
+		// 	ii curr = *it;
+		// 	printf("(dbg) %d %d\n", curr.X, curr.Y-n);
+		// }
 
 		printf("%d", cover);
 
+		set<int> subset;
+
+		for(it = matching.begin(); it != matching.end(); it++) {
+			ii curr = *it;
+			row[curr.X] = col[curr.Y] = 1;
+		}
+
 		for(int i=1; i <= n; i++) 
-			if (row[i])
-				printf(" r%d", i);
+			if (!row[i])
+				for(int j=0; j < edges[i].size(); j++) {
+					int u = edges[i][j];
+					if (adj[i][u] > 0 && u > n && u <= n+m) {
+						subset.insert(u);
+						for(int k=0; k < edges[u].size(); k++) {
+							int v = edges[u][k];
+							if (adj[u][v] > 0 && v >= 1 && v <= n) {
+								subset.insert(v);
+								for(int l=0; l < edges[v].size(); l++) {
+									int w = edges[v][l];
+									if (adj[v][w] > 0 && w > n && w <= n+m)
+										subset.insert(w);
+								}
+							}
+						}
+					}
+				}
 
 
-		for(int i=n+1; i <= n+m; i++) 
-			if (col[i])
-				printf(" c%d", i-n);
+
+		for(it = matching.begin(); it != matching.end(); it++) {
+			ii curr = *it;
+
+			if (subset.find(curr.Y) != subset.end() || subset.find(curr.X) != subset.end()) 
+				printf(" c%d", curr.Y-n);
+			else 
+				printf(" r%d", curr.X);
+		}
+
 		printf("\n");
 	}
 }
